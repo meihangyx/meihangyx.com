@@ -1,0 +1,102 @@
+# ==========================================================================
+#  Meihang Co., Limited — Apache configuration
+#  https://meihangyx.com/
+# ==========================================================================
+
+# --------------------------------------------------------------------------
+# 1. Canonical host + HTTPS
+# --------------------------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Force HTTPS (honouring reverse-proxy headers)
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Redirect the www host to the canonical domain
+    RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+    RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
+
+    # /index.html  ->  /   (permanent, keeps the path)
+    RewriteCond %{THE_REQUEST} \s/+(.*/)?index\.html[\s?] [NC]
+    RewriteRule ^ /%1 [R=301,L]
+
+    # Strip trailing slashes from non-directory requests
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} ^(.+)/$
+    RewriteRule ^ %1 [L,R=301]
+</IfModule>
+
+# --------------------------------------------------------------------------
+# 2. Security headers
+# --------------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(self), camera=(), microphone=(), payment=()"
+    Header always set X-Permitted-Cross-Domain-Policies "none"
+</IfModule>
+
+# --------------------------------------------------------------------------
+# 3. Custom error pages
+# --------------------------------------------------------------------------
+ErrorDocument 404 /404.html
+
+# --------------------------------------------------------------------------
+# 4. Compression (gzip)
+# --------------------------------------------------------------------------
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml
+    AddOutputFilterByType DEFLATE application/javascript application/x-javascript
+    AddOutputFilterByType DEFLATE application/json application/xml application/rss+xml
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# --------------------------------------------------------------------------
+# 5. Cache headers
+# --------------------------------------------------------------------------
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css                "access plus 1 year"
+    ExpiresByType application/javascript  "access plus 1 year"
+    ExpiresByType image/png               "access plus 1 year"
+    ExpiresByType image/jpeg              "access plus 1 year"
+    ExpiresByType image/webp              "access plus 1 year"
+    ExpiresByType image/svg+xml           "access plus 1 year"
+    ExpiresByType image/x-icon            "access plus 1 year"
+    ExpiresByType font/woff2              "access plus 1 year"
+    ExpiresByType text/html               "access plus 1 hour"
+    ExpiresByType application/xml         "access plus 1 day"
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|png|jpe?g|webp|svg|ico|woff2?)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    <FilesMatch "\.(html|txt|xml)$">
+        Header set Cache-Control "public, max-age=3600, must-revalidate"
+    </FilesMatch>
+</IfModule>
+
+# --------------------------------------------------------------------------
+# 6. MIME types for the mobile app ad declaration
+# --------------------------------------------------------------------------
+<IfModule mod_mime.c>
+    AddType text/plain                    .txt
+    AddType application/xml               .xml
+</IfModule>
+
+# --------------------------------------------------------------------------
+# 7. Block access to sensitive files
+# --------------------------------------------------------------------------
+<FilesMatch "^\.(htaccess|htpasswd|env|git)$">
+    Require all denied
+</FilesMatch>
+
+# local preview tooling — kept on disk, never served
+<FilesMatch "^(server\.js|preview\.cmd)$">
+    Require all denied
+</FilesMatch>

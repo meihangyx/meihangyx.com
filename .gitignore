@@ -1,0 +1,11 @@
+# Build inputs (not part of the published site)
+SPEC.txt
+tihuan.txt
+
+# Packaging artifact
+meihang-site.zip
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
